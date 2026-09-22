@@ -1,0 +1,66 @@
+name: Build Android APK
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build Android Project
+        run: |
+          echo "Finding Gradle Wrapper..."
+          GRADLEW_PATH=$(find . -name "gradlew" | head -n 1)
+
+          if [ -n "$GRADLEW_PATH" ]; then
+            DIR=$(dirname "$GRADLEW_PATH")
+            cd "$DIR"
+            chmod +x gradlew
+            ./gradlew assembleDebug || ./gradlew assembleRelease || ./gradlew build -x test
+          else
+            echo "Searching for build.gradle..."
+            BUILD_DIR=$(dirname $(find . -name "build.gradle*" | head -n 1))
+            cd "$BUILD_DIR"
+            gradle assembleDebug || gradle assembleRelease || gradle build -x test
+          fi
+
+      - name: Locate Generated APK
+        id: find_apk
+        run: |
+          echo "Searching for generated APK files..."
+          APK_FILE=$(find . -type f -name "*.apk" | head -n 1)
+          if [ -z "$APK_FILE" ]; then
+            echo "Error: No APK file was generated!"
+            exit 1
+          fi
+          echo "Found APK at: $APK_FILE"
+          echo "apk_path=$APK_FILE" >> $GITHUB_ENV
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-app
+          path: ${{ env.apk_path }}
+
+      - name: Release APK
+        uses: softprops/action-gh-release@v2
+        if: success()
+        with:
+          tag_name: v1.0.0
+          name: 'Android APK Release'
+          files: ${{ env.apk_path }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
