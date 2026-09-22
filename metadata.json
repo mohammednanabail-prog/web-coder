@@ -1,0 +1,6 @@
+{
+  "name": "Web Code Editor",
+  "description": "A smart and professional HTML, CSS, and JS code editor for Android with instant live preview, file manager, and syntax highlighting.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
